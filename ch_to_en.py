@@ -8,7 +8,7 @@ dataset = input("Which set you want to learn?  ")
 with open(f'{dataset}.csv', mode ='r', encoding='utf-8')as file:
     csvFile = csv.reader(file)
     for row in csvFile:
-        study_set[row[0]] = row[1]
+        study_set[row[1]] = row[0]
 
 keys = list(study_set.keys())
 random.shuffle(keys)
