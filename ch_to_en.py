@@ -32,6 +32,11 @@ for key in keys:
         print("\033[1;37;42m ======================================================= \033[0m\n")
     else:
         print(f"Wrong! The correct answer is '{meaning}'.\n")
+        while True:
+            retry = input("Please spell the word again ! ans: ")
+            if retry == meaning:
+                break
+            print("Wrong! Please try again.\n")
         print("\033[1;37;41m ======================================================= \033[0m\n")
 
     
