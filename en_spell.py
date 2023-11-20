@@ -1,5 +1,13 @@
 import random
 import csv
+import pyttsx3
+import threading
+
+def speak(text):
+    engine = pyttsx3.init()
+    engine.setProperty('rate', 140)
+    engine.say(text)
+    engine.runAndWait()
 
 study_set = {}
 dataset = input("Which set you want to learn?  ")
@@ -26,10 +34,11 @@ for key in keys:
     else:
         print(f"Wrong! The correct answer is '{meaning}'.\n")
         while True:
-            retry = input("Please spell it again ! ans: ")
+            threading.Thread(target=speak, args=(meaning,)).start()
+            retry = input("Please spell the word again ! ans: ")
             if retry == meaning:
                 break
-            print("Wrong! Please try again.\n")
-
+            print(f"Wrong! The correct answer is '{meaning}'. Try again.\n")
+        keys.append(word)
         print("\033[1;37;41m ======================================================= \033[0m\n")
     
