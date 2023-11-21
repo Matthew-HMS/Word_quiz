@@ -1,13 +1,19 @@
+from gtts import gTTS
+import subprocess
 import random
 import csv
-import pyttsx3
+import os
 import threading
 
 def speak(text):
-    engine = pyttsx3.init()
-    engine.setProperty('rate', 140)
-    engine.say(text)
-    engine.runAndWait()
+    tts = gTTS(text=text, lang='en')
+    filename = 'word.mp3'
+    tts.save(filename)
+
+
+def play_audio(filename):
+    with open(os.devnull, 'w') as devnull:
+        subprocess.run(['ffplay', '-nodisp', '-autoexit', filename], stdout=devnull, stderr=devnull)
 
 study_set = {}
 dataset = input("Which set you want to learn?  ")
@@ -34,16 +40,18 @@ for key in keys:
     random.shuffle(possible_ans)
     question = {1:possible_ans[0], 2:possible_ans[1], 3:possible_ans[2], 4:possible_ans[3]}
 
+    speak(meaning)
     response = input(f"What is the meaning of '{word}'?\n1. {question[1]}\n2. {question[2]}\n3. {question[3]}\n4. {question[4]}\n\n\n\n\n\nYour answer: ")
-    threading.Thread(target=speak, args=(question[int(response)],)).start()
+    
 
     if question[int(response)] == meaning:
+        play_audio('word.mp3')
         print("Correct!\n")
         print("\033[1;37;42m ======================================================= \033[0m\n")
     else:
         print(f"Wrong! The correct answer is '{meaning}'.\n")
         while True:
-            threading.Thread(target=speak, args=(meaning,)).start()
+            threading.Thread(target=play_audio, args=('word.mp3',)).start()
             retry = input("Please spell the word again ! ans: ")
             if retry == meaning:
                 break
