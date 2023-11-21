@@ -4,9 +4,9 @@ Do this first ->
 ```shell
 pip install gtts
 ```
-⚠️ You have to have FFMPEG installed !
+⚠️ You need to installed FFMPEG first and add it to path !
 
-> Should be something like this in your terminal
+> Results should be something like this in your terminal
 
 1. English to Chinese
 <br>
