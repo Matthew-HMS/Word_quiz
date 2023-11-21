@@ -1,5 +1,10 @@
-# Word_quiz
-Trying to have fun when memorizing vocabulary
+# Instruction
+
+Do this first ->
+```shell
+pip install gtts
+```
+⚠️ You have to have FFMPEG installed !
 
 > Should be something like this in your terminal
 
