@@ -41,19 +41,19 @@ wrong = 0
 
 # add options
 for key in keys:
+
+    word = key
+    meaning = study_set[key]
+    values = list(study_set.values())
+    values.remove(meaning)
+    random_values = random.sample(values, 3)
+    possible_ans = [meaning] + random_values
+    
+    random.shuffle(possible_ans)
+    question = {1:possible_ans[0], 2:possible_ans[1], 3:possible_ans[2], 4:possible_ans[3]}
+
     while True:
         try:
-            word = key
-            meaning = study_set[key]
-
-            values = list(study_set.values())
-            values.remove(meaning)
-            random_values = random.sample(values, 3)
-            possible_ans = [meaning] + random_values
-            
-            random.shuffle(possible_ans)
-            question = {1:possible_ans[0], 2:possible_ans[1], 3:possible_ans[2], 4:possible_ans[3]}
-            
             speak(word)
             counter = f"({correct+wrong+1}/{len(keys)})"
             threading.Thread(target=play_audio, args=('word.mp3',)).start()
