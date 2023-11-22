@@ -17,13 +17,19 @@ def play_audio(filename):
         subprocess.run(['ffplay', '-nodisp', '-autoexit', filename], stdout=devnull, stderr=devnull)
 
 study_set = {}
-dataset = input("Which set you want to learn? (enter file's name) ")
+while True:
+    try:
+        dataset = input("Which set you want to learn? (enter file's name) ")
+        # read csv file
+        with open(f'{dataset}.csv', mode ='r', encoding='utf-8')as file:
+            csvFile = csv.reader(file)
+            for row in csvFile:
+                study_set[row[1]] = row[0]
+        break
+    except FileNotFoundError:
+        print("File not found. Please try again.\n")
+        continue
 
-# read csv file
-with open(f'{dataset}.csv', mode ='r', encoding='utf-8')as file:
-    csvFile = csv.reader(file)
-    for row in csvFile:
-        study_set[row[1]] = row[0]
 
 keys = list(study_set.keys())
 random.shuffle(keys)
