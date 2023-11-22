@@ -50,6 +50,7 @@ for key in keys:
     if response == meaning:
         correct += 1
         # threading.Thread(target=play_audio, args=('word.mp3',)).start()
+        play_audio('word.mp3')
         print("Correct!\n")
         print("\033[1;37;42m ======================================================= \033[0m\n")
     else:
