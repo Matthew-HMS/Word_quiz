@@ -21,7 +21,7 @@ while True:
     try:
         dataset = input("Which set you want to learn? (enter file's name) ")
         # read csv file
-        with open(f'{dataset}.csv', mode ='r', encoding='utf-8')as file:
+        with open(f'./sets/{dataset}.csv', mode ='r', encoding='utf-8')as file:
             csvFile = csv.reader(file)
             for row in csvFile:
                 study_set[row[1]] = row[0]

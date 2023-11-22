@@ -21,7 +21,7 @@ while True:
     try:
         dataset = input("Which set you want to learn? (enter file's name) ")
         # read csv file
-        with open(f'{dataset}.csv', mode ='r', encoding='utf-8')as file:
+        with open(f'./sets/{dataset}.csv', mode ='r', encoding='utf-8')as file:
             csvFile = csv.reader(file)
             for row in csvFile:
                 study_set[row[1]] = row[0]
@@ -49,7 +49,7 @@ for key in keys:
 
     if response == meaning:
         correct += 1
-        threading.Thread(target=play_audio, args=('word.mp3',)).start()
+        # threading.Thread(target=play_audio, args=('word.mp3',)).start()
         print("Correct!\n")
         print("\033[1;37;42m ======================================================= \033[0m\n")
     else:
