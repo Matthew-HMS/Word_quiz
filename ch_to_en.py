@@ -54,7 +54,8 @@ for key in keys:
             question = {1:possible_ans[0], 2:possible_ans[1], 3:possible_ans[2], 4:possible_ans[3]}
 
             speak(meaning)
-            response = input(f"What is the meaning of '{word}'?\n1. {question[1]}\n2. {question[2]}\n3. {question[3]}\n4. {question[4]}\n\n\n\n\n\nYour answer: ")
+            counter = f"({correct+wrong+1}/{len(keys)})"
+            response = input(f"What is the meaning of '{word}'? {counter}\n1. {question[1]}\n2. {question[2]}\n3. {question[3]}\n4. {question[4]}\n\n\n\n\n\nYour answer: ")
             
 
             if response not in ['1', '2', '3', '4']:
@@ -62,7 +63,7 @@ for key in keys:
             
             if question[int(response)] == meaning:
                 correct += 1
-                play_audio('word.mp3')
+                # play_audio('word.mp3')
                 print("Correct!\n")
                 print("\033[1;37;42m ======================================================= \033[0m\n")
             else:

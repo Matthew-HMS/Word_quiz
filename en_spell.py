@@ -44,7 +44,8 @@ for key in keys:
     meaning = study_set[key]
 
     speak(meaning)
-    response = input(f"What is the meaning of '{word}'?\n\n\n\n\n\n\nYour answer: ")
+    counter = f"({correct+wrong+1}/{len(keys)})"
+    response = input(f"What is the meaning of '{word}'? {counter}\n\n\n\n\n\n\nYour answer: ")
 
     if response == meaning:
         correct += 1
