@@ -4,7 +4,8 @@ Do this first ->
 ```shell
 pip install gtts
 ```
-⚠️ You need to installed FFMPEG first and add it to path !
+⚠️ You need to installed FFMPEG first and add it to path ! Also, gtts requires internet connection.
+<br>
 
 > Results should be something like this in your terminal
 
