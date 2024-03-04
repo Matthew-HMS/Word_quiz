@@ -16,9 +16,13 @@ def play_audio(filename):
     with open(os.devnull, 'w') as devnull:
         subprocess.run(['ffplay', '-nodisp', '-autoexit', filename], stdout=devnull, stderr=devnull)
 
+def list_files(dir):
+    return os.listdir(dir)
+
 study_set = {}
 while True:
     try:
+        print(list_files("./sets"))
         dataset = input("Which set you want to learn? (enter file's name) ")
         # read csv file
         with open(f'./sets/{dataset}.csv', mode ='r', encoding='utf-8')as file:
