@@ -44,7 +44,7 @@ wrong = 0
 
 # add options
 for key in keys:
-    word = key
+    word = key.split(';')[0]  # remove word after;
     meaning = study_set[key]
     values = list(study_set.values())
     values.remove(meaning)
