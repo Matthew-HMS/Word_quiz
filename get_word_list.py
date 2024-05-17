@@ -9,7 +9,7 @@ import time
 driver = Driver(browser='chrome', headless=False, uc=True)
 wait = WebDriverWait(driver, 10)  # Wait up to 10 seconds
 
-driver.get("https://quizlet.com/tw/498049178/%E5%AD%97%E5%BD%99%E5%A1%AB%E7%A9%BA%E4%BA%8C-flash-cards/")
+driver.get("https://quizlet.com/tw/874939072/mason-2000-flash-cards/")
 
 while True:
     try:
