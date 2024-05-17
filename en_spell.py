@@ -10,7 +10,7 @@ def speak(text):
     tts = gTTS(text=text, lang='en')
     filename = 'word.mp3'
     tts.save(filename)
-
+ 
 
 def play_audio(filename):
     with open(os.devnull, 'w') as devnull:
@@ -44,7 +44,7 @@ wrong = 0
 
 # add options
 for key in keys:
-    word = key
+    word = key.split(';')[0]  # remove word after;
     meaning = study_set[key]
 
     speak(meaning)
