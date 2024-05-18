@@ -54,7 +54,7 @@ for key in keys:
     possible_ans = [meaning] + random_values
     
     random.shuffle(possible_ans)
-    question = {1:possible_ans[0], 2:possible_ans[1], 3:possible_ans[2], 4:possible_ans[3]}
+    question = {1:possible_ans[0].split(';')[0], 2:possible_ans[1].split(';')[0], 3:possible_ans[2].split(';')[0], 4:possible_ans[3].split(';')[0]}  # remove word after ;
 
     while True:
         try:
@@ -66,7 +66,7 @@ for key in keys:
             if response not in ['1', '2', '3', '4']:
                 raise ValueError("Invalid! Enter a number between 1 and 4.\n")
 
-            if question[int(response)] == meaning:
+            if question[int(response)] == meaning.split(';')[0]:   # remove word after ;
                 correct += 1
                 print("Correct!\n")
                 print("\033[1;37;42m ======================================================= \033[0m\n")
