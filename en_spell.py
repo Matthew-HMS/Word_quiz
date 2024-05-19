@@ -44,12 +44,12 @@ wrong = 0
 
 # add options
 for key in keys:
-    word = key.split(';')[0]  # remove word after;
+    word = key 
     meaning = study_set[key]
 
     speak(meaning)
     counter = f"({correct+wrong+1}/{len(keys)})"
-    response = input(f"What is the meaning of '{word}'? {counter}\n\n\n\n\n\n\nYour answer: ")
+    response = input(f"What is the meaning of '{word.split(';')[0]}'? {counter}\n\n\n\n\n\n\nYour answer: ")  # remove word after ;
 
     if response == meaning:
         correct += 1

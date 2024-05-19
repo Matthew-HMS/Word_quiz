@@ -44,7 +44,7 @@ wrong = 0
 
 # add options
 for key in keys:
-    word = key.split(';')[0]  # remove word after;
+    word = key
     meaning = study_set[key]
     values = list(study_set.values())
     values.remove(meaning)
@@ -58,7 +58,7 @@ for key in keys:
         try:
             speak(meaning)
             counter = f"({correct+wrong+1}/{len(keys)})"
-            response = input(f"What is the meaning of '{word}'? {counter}\n1. {question[1]}\n2. {question[2]}\n3. {question[3]}\n4. {question[4]}\n\n\n\n\n\nYour answer: ")
+            response = input(f"What is the meaning of '{word.split(';')[0]}'? {counter}\n1. {question[1]}\n2. {question[2]}\n3. {question[3]}\n4. {question[4]}\n\n\n\n\n\nYour answer: ")
 
             if response not in ['1', '2', '3', '4']:
                 raise ValueError("Invalid! Enter a number between 1 and 4.\n")
