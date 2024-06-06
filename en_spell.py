@@ -67,7 +67,8 @@ while True:
         df = pd.read_csv(file_path, encoding='utf-8')
 
         for index, row in df.iterrows():
-            study_set[row.iloc[0]] = row.iloc[1]
+            study_set[row.iloc[1]] = row.iloc[0]
+
 
         print("Dataset loaded successfully!")
         break
