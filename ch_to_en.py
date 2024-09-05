@@ -4,7 +4,6 @@ import random
 import csv
 import os
 import threading
-import pandas as pd
 import re
 
 # add pronunciation
@@ -64,10 +63,11 @@ while True:
                 print("Invalid command. Please try again.\n")
 
         file_path = f'./sets/{dataset}.csv'
-        df = pd.read_csv(file_path, encoding='utf-8')
-
-        for index, row in df.iterrows():
-            study_set[row.iloc[1]] = row.iloc[0]
+        with open(file_path, encoding='utf-8') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                key = row[1]
+                study_set[key] = row[0] 
         
 
         print("Dataset loaded successfully!")
