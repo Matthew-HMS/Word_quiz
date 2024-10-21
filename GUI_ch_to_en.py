@@ -146,6 +146,7 @@ def show_stats():
 # GUI
 root = Tk()
 root.title("word quiz")
+root.bind('<Return>', lambda event: check_retry_entry())  # 綁定 Enter 到 check_answer
 
 dataset = ""
 study_set = {}
