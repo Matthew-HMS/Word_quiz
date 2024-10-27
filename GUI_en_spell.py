@@ -81,15 +81,19 @@ def check_answer():
         # messagebox.showinfo("Correct", "Correct!")
         play_audio('word.mp3')
         enable_normal_answer_mode()
+        error_display_label.pack_forget()
         show_next_word()  # 繼續下一個問題
     else:
         wrong += 1
+        error_display_label.config(text=f"上次錯誤輸入: {user_input}")
+        error_display_label.pack(pady=5)
         messagebox.showerror("Wrong", f"Wrong！Correct answer is：'{current_meaning}'")
         play_audio('word.mp3')
         keys.append(current_word)  # 將錯誤的單詞放回題庫
         retry_entry.pack(pady=5)
         retry_button.pack(pady=5)
         answer_entry.config(state="disabled")
+        retry_entry.focus_set()
         enable_retry_mode()
 
 def retry_answer():
@@ -101,9 +105,15 @@ def retry_answer():
         retry_button.pack_forget()
         answer_entry.config(state="normal")
         enable_normal_answer_mode() 
+        error_display_label.config(text="")
+        error_display_label.pack_forget()
+        answer_entry.focus_set()
         show_next_word()
     else:
+        error_display_label.config(text=f"上次錯誤輸入: {retry_input}")
+        error_display_label.pack(pady=5)
         messagebox.showerror("Wrong", f"Wrong!Insert again: '{current_meaning}'")
+        retry_entry.focus_set()
         play_audio('word.mp3')
         
 
@@ -118,6 +128,7 @@ def enable_normal_answer_mode():
 def enable_retry_mode():
     root.unbind('<Return>')  # 解除 check_answer 的綁定
     root.bind('<Return>', lambda event: retry_answer())  # 綁定 Enter 到 retry_answer
+
 
 
 # GUI佈局
@@ -158,6 +169,7 @@ question_label.pack(pady=20)
 # 答案輸入框
 answer_entry = Entry(root, width=50)
 answer_entry.pack(pady=5)
+answer_entry.focus_set()
 
 # 確認答案按鈕
 check_button = Button(root, text="OK", command=check_answer)
@@ -166,5 +178,9 @@ check_button.pack(pady=5)
 # 重試輸入框
 retry_entry = Entry(root, width=50)
 retry_button = Button(root, text="重試拼寫", command=retry_answer)
+
+# 錯誤答案顯示框
+error_display_label = Label(root, text="", font=("Arial", 12), fg="red")
+error_display_label.pack(pady=5)
 
 root.mainloop()
