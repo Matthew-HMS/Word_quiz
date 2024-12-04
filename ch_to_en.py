@@ -130,5 +130,5 @@ for key in keys:
 
 # show statistics
 print(f"Correct: {correct}\nWrong: {wrong}\nAccuracy: {round(correct/(correct+wrong),2)}\n")
-
+input("Press 'Enter' to terminate the program...")
     
