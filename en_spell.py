@@ -70,7 +70,7 @@ while True:
                 study_set[key] = row[0] 
 
 
-        print("Dataset loaded successfully!")
+        print(f"Set: {dataset}.csv loaded successfully!\n")
         break
 
     except FileNotFoundError:
