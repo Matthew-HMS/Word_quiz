@@ -2,3 +2,4 @@ venv
 *.spec
 dist
 build
+word.mp3
