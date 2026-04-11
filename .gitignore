@@ -1,5 +1,17 @@
 venv
-*.spec
-dist
-build
-word.mp3
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Backend
+backend/.env
+backend/*.db
+backend/.venv/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env

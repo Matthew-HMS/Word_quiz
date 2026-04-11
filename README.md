@@ -1,25 +1,39 @@
-# Instruction
+# Word Quiz Backend (FastAPI)
 
-The `sets` folder contains the word list for the quiz. You can add more words to the list or create your own list. The file should be a `.csv` file and the words should be separated by colons. It only work when putting `sets` folder in the same directory as the `.exe` file.
+## Why your `pip install` failed
 
-Remember to do this ->
-```shell
-pip install gtts
+If you run `pip install -r backend/requirements.txt` inside the repo-level `venv/`, you may be using **Python 3.14**.
+
+Some FastAPI dependencies (notably `pydantic-core`) may not have prebuilt wheels for Python 3.14 yet, so pip tries to compile from source and fails.
+
+This backend is intended to run with **Python 3.12** (recommended).
+
+## Quick start (recommended)
+
+From the repo root:
+
+```sh
+./backend/run_dev.sh
 ```
-⚠️ You need to installed FFMPEG first and add it to path ! Also, gtts requires internet connection.
-<br>
 
-> Results should be something like this in your terminal
+Then open:
+- UI: http://localhost:8000/
+- Health: http://localhost:8000/health
 
-1. English to Chinese
-<br>
+## Manual start
 
-<img src = "https://github.com/Matthew-HMS/Word_quiz/blob/main/img/image.png">
-2. Chinese to English
-<br>
+```sh
+python3.12 -m venv backend/.venv
+backend/.venv/bin/python -m pip install -r backend/requirements.txt
+backend/.venv/bin/python -m uvicorn app.main:app --app-dir backend --reload --port 8000
+```
 
-<img src = "https://github.com/Matthew-HMS/Word_quiz/blob/main/img/image2.png">
-3. Spell the word !
-<br>
+## Database
 
-<img src = "https://github.com/Matthew-HMS/Word_quiz/blob/main/img/image3.png">
+- Default is SQLite: `./wordquiz.db` (zero setup).
+- For Postgres (recommended for production/multi-worker), set `DATABASE_URL` in either `./.env` (repo root) or `./backend/.env`.
+- You can start a local Postgres with:
+
+```sh
+docker compose -f backend/docker-compose.yml up -d
+```
