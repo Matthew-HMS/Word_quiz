@@ -12,16 +12,23 @@ services:
     volumes:
       - wordquiz_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
+    # 1. Add this healthcheck so Docker knows when DB is ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wordquiz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
     ports:
       - "8000:8000"
     environment:
-      # Connect to the PostgreSQL container instead of SQLite
       - DATABASE_URL=postgresql+psycopg://wordquiz:wordquiz_secure@db:5432/wordquiz
     depends_on:
-      - db
+      db:
+        # 2. Tell the API to wait for that healthcheck before starting
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
