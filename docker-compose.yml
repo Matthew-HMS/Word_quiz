@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: wordquiz
+      POSTGRES_USER: wordquiz
+      POSTGRES_PASSWORD: wordquiz_secure
+    ports:
+      - "5432:5432"
+    volumes:
+      - wordquiz_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Connect to the PostgreSQL container instead of SQLite
+      - DATABASE_URL=postgresql+psycopg://wordquiz:wordquiz_secure@db:5432/wordquiz
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  wordquiz_pgdata:

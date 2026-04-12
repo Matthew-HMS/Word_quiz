@@ -3,7 +3,7 @@ import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
 import htm from 'https://esm.sh/htm';
 
 const html = htm.bind(React.createElement);
-const API_BASE = '';
+const API_BASE = 'http://35.212.191.214:8000';
 
 function useStoredToken() {
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
