@@ -5,11 +5,11 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install system dependencies if required for python packages like bcrypt
+# Build tools for any packages that need compilation
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -U 'bcrypt==3.2.2' && pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
 COPY backend/ ./backend/
 COPY sets/ ./sets/

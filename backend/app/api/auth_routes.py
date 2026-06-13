@@ -1,37 +1,45 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import (
-    create_access_token,
-    get_current_user,
-    hash_password,
-    validate_bcrypt_password,
-    verify_password,
-)
+from app.auth import create_access_token, get_current_user, verify_google_token
 from app.db import get_db
 from app.models import User
-from app.schemas import LoginRequest, RegisterRequest, TokenResponse, UserMeResponse
+from app.schemas import GoogleAuthRequest, TokenResponse, UserMeResponse
 
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=TokenResponse)
-def register(req: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    try:
-        validate_bcrypt_password(req.password)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.post("/google", response_model=TokenResponse)
+def google_login(req: GoogleAuthRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    claims = verify_google_token(req.credential)
 
-    existing = db.execute(select(User).where(User.email == req.email)).scalar_one_or_none()
-    if existing is not None:
-        raise HTTPException(status_code=400, detail="Email already registered")
+    sub = str(claims["sub"])
+    email = str(claims["email"])
+    name = claims.get("name")
+    picture = claims.get("picture")
 
-    user = User(email=req.email, password_hash=hash_password(req.password))
-    db.add(user)
+    # Find by Google subject first, then fall back to email so legacy/email
+    # accounts get linked to their Google identity on first sign-in.
+    user = db.execute(select(User).where(User.google_sub == sub)).scalar_one_or_none()
+    if user is None:
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+
+    if user is None:
+        user = User(email=email, google_sub=sub, name=name, picture=picture)
+        db.add(user)
+    else:
+        # Keep identity fields current.
+        user.google_sub = sub
+        user.email = email
+        if name:
+            user.name = name
+        if picture:
+            user.picture = picture
+
     db.commit()
     db.refresh(user)
 
@@ -39,22 +47,6 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)) -> TokenRespon
     return TokenResponse(access_token=token)
 
 
-@router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
-    try:
-        validate_bcrypt_password(req.password)
-    except ValueError:
-        # Don't leak password policy details unnecessarily; keep it simple.
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-
-    user = db.execute(select(User).where(User.email == req.email)).scalar_one_or_none()
-    if user is None or not verify_password(req.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-
-    token = create_access_token(str(user.id))
-    return TokenResponse(access_token=token)
-
-
 @router.get("/me", response_model=UserMeResponse)
 def me(user: User = Depends(get_current_user)) -> UserMeResponse:
-    return UserMeResponse(id=user.id, email=user.email)
+    return UserMeResponse(id=user.id, email=user.email, name=user.name, picture=user.picture)

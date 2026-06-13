@@ -28,16 +28,13 @@ def create_app() -> FastAPI:
         def index():
             return FileResponse(str(web_dir / "index.html"))
 
-    # CORS for local React dev server
+    # Origins are configured via CORS_ALLOW_ORIGINS (comma-separated) in .env.
     allow_origins = [o.strip() for o in settings.cors_allow_origins.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-        "http://localhost:8000", 
-        "https://matthew-hms.github.io" # <-- Add your GitHub Pages URL
-        ],
+        allow_origins=allow_origins,
         allow_credentials=True,
-        allow_methods=["*"] ,
+        allow_methods=["*"],
         allow_headers=["*"],
     )
 

@@ -6,8 +6,9 @@ from typing import Any
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,26 +17,12 @@ from app.db import get_db
 from app.models import User
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+# tokenUrl is informational only (used by the OpenAPI docs "Authorize" button);
+# clients obtain the bearer token from /api/auth/google.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/google")
 
-
-def validate_bcrypt_password(password: str) -> None:
-    """bcrypt only uses the first 72 bytes of a password.
-
-    passlib raises ValueError for longer inputs; validate up-front so we can
-    return a user-friendly 400 instead of a 500.
-    """
-    if len(password.encode("utf-8")) > 72:
-        raise ValueError("Password must be at most 72 bytes (bcrypt limit)")
-
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+# Reused across requests; caches Google's signing certificates.
+_google_request = google_requests.Request()
 
 
 def create_access_token(subject: str) -> str:
@@ -43,6 +30,32 @@ def create_access_token(subject: str) -> str:
     exp = now + dt.timedelta(minutes=settings.access_token_exp_minutes)
     payload: dict[str, Any] = {"sub": subject, "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def verify_google_token(credential: str) -> dict[str, Any]:
+    """Verify a Google ID token (the `credential` from Google Identity Services).
+
+    Returns the decoded claims (sub, email, name, picture, ...) on success.
+    Raises HTTP 401 if the token is invalid or not issued for our client.
+    """
+    if not settings.google_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google sign-in is not configured (GOOGLE_CLIENT_ID is unset)",
+        )
+    try:
+        claims = google_id_token.verify_oauth2_token(
+            credential, _google_request, settings.google_client_id
+        )
+    except Exception as e:  # verify_oauth2_token raises ValueError / GoogleAuthError
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google credential",
+        ) from e
+
+    if not claims.get("email_verified", False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google email not verified")
+    return claims
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:

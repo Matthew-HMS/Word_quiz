@@ -25,18 +25,14 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_exp_minutes: int = 60 * 24
 
+    # Google SSO (the only auth method). Set to your OAuth 2.0 Web client ID.
+    google_client_id: str = ""
+
     # CORS
     cors_allow_origins: str = "http://localhost:5173"
 
     # Data
     repo_root: Path = _REPO_ROOT
-    sets_dir: Path | None = None
-
-    def resolved_sets_dir(self) -> Path:
-        if self.sets_dir is not None:
-            return Path(self.sets_dir)
-        # Default to repo-root/sets
-        return self.repo_root / "sets"
 
 
 settings = Settings()

@@ -7,12 +7,13 @@ services:
       POSTGRES_DB: wordquiz
       POSTGRES_USER: wordquiz
       POSTGRES_PASSWORD: wordquiz_secure
-    ports:
-      - "5432:5432"
+    # Not exposed to the host; only reachable on the internal compose network.
+    expose:
+      - "5432"
     volumes:
       - wordquiz_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
-    # 1. Add this healthcheck so Docker knows when DB is ready
+    # Healthcheck so Docker knows when DB is ready
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U wordquiz"]
       interval: 5s
@@ -21,15 +22,34 @@ services:
 
   api:
     build: .
-    ports:
-      - "8000:8000"
+    # Internal only; Caddy is the public entrypoint and proxies to api:8000.
+    expose:
+      - "8000"
+    # Pulls JWT_SECRET_KEY + GOOGLE_CLIENT_ID (and others) from the repo-root .env.
+    env_file:
+      - .env
     environment:
+      # Overrides the .env value so the API talks to the compose db service.
       - DATABASE_URL=postgresql+psycopg://wordquiz:wordquiz_secure@db:5432/wordquiz
     depends_on:
       db:
-        # 2. Tell the API to wait for that healthcheck before starting
         condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
     restart: unless-stopped
 
 volumes:
   wordquiz_pgdata:
+  caddy_data:
+  caddy_config:

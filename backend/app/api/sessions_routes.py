@@ -19,7 +19,7 @@ from app.schemas import (
     ResultResponse,
 )
 from app.services.quiz_engine import build_question, finalize_result, init_state, submit_answer
-from app.services.sets_service import load_set
+from app.services.sets_service import SetNotFoundError, load_set
 
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -32,9 +32,11 @@ def create_session(
     db: Session = Depends(get_db),
 ) -> CreateSessionResponse:
     try:
-        study_set = load_set(req.set)
-    except FileNotFoundError:
+        study_set = load_set(db, user, req.set)
+    except SetNotFoundError:
         raise HTTPException(status_code=404, detail="Set not found")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="This set has no words yet")
 
     if req.mode in ("en-to-ch", "ch-to-en") and len(study_set) < 4:
         raise HTTPException(status_code=400, detail="Multiple-choice modes require at least 4 words")
@@ -78,7 +80,10 @@ def get_question(
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    study_set = load_set(session.set_name)
+    try:
+        study_set = load_set(db, user, session.set_name)
+    except (SetNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="Set no longer exists")
 
     def _progress_str(state: dict) -> str:
         progress = int(state.get("idx", 0) or 0)
@@ -158,7 +163,10 @@ def answer(
     if session is None:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    study_set = load_set(session.set_name)
+    try:
+        study_set = load_set(db, user, session.set_name)
+    except (SetNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="Set no longer exists")
 
     res = submit_answer(session.state, study_set, choice=req.choice, text=req.text)
     # persist state

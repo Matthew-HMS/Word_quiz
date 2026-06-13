@@ -3,7 +3,11 @@ import { createRoot } from 'https://esm.sh/react-dom@18.3.1/client';
 import htm from 'https://esm.sh/htm';
 
 const html = htm.bind(React.createElement);
-const API_BASE = 'http://35.212.191.214:8000';
+// Empty => same-origin: the page is served by the backend (via Caddy) at the
+// same host, so API calls use relative paths and need no CORS.
+const API_BASE = '';
+
+const GOOGLE_CLIENT_ID = '10466107287-irnc978g4rghte1de4j8a2b2a34e9482.apps.googleusercontent.com';
 
 function useStoredToken() {
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
@@ -34,6 +38,20 @@ async function apiFetch(path, { token, method = 'GET', body } = {}) {
   return data;
 }
 
+async function apiUpload(path, { token, formData }) {
+  // Don't set Content-Type; the browser adds the multipart boundary itself.
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(API_BASE + path, { method: 'POST', headers, body: formData });
+  const contentType = res.headers.get('content-type') || '';
+  const data = contentType.includes('application/json') ? await res.json() : await res.text();
+  if (!res.ok) {
+    throw new Error(formatApiError(data) || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 function formatApiError(data) {
   if (!data) return '';
   if (typeof data === 'string') return data;
@@ -51,26 +69,47 @@ function formatApiError(data) {
   return String(detail);
 }
 
-function AuthCard({ token, setToken, onAuthed }) {
-  const [mode, setMode] = useState('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [err, setErr] = useState('');
-  const [loading, setLoading] = useState(false);
+function GoogleSignIn({ onCredential }) {
+  const ref = React.useRef(null);
 
-  const submit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    let timer = null;
+    const tryRender = () => {
+      if (!ref.current) return false;
+      const gid = window.google && window.google.accounts && window.google.accounts.id;
+      if (!gid) return false;
+      gid.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (resp) => { if (resp && resp.credential) onCredential(resp.credential); },
+      });
+      ref.current.innerHTML = '';
+      gid.renderButton(ref.current, {
+        theme: 'filled_blue', size: 'large', shape: 'pill', text: 'continue_with', width: 280,
+      });
+      return true;
+    };
+
+    // The GSI script loads async; poll briefly until it's ready.
+    if (!tryRender()) {
+      timer = setInterval(() => { if (tryRender()) clearInterval(timer); }, 200);
+    }
+    return () => { if (timer) clearInterval(timer); };
+  }, []);
+
+  return html`<div ref=${ref} class="flex justify-center min-h-[44px]"></div>`;
+}
+
+function AuthCard({ token, setToken, onAuthed }) {
+  const [err, setErr] = useState('');
+
+  const onCredential = async (credential) => {
     setErr('');
-    setLoading(true);
     try {
-        const path = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-        const data = await apiFetch(path, { method: 'POST', body: { email, password } });
-        setToken(data.access_token);
-        onAuthed();
+      const data = await apiFetch('/api/auth/google', { method: 'POST', body: { credential } });
+      setToken(data.access_token);
+      onAuthed();
     } catch (error) {
-        setErr(error.message);
-    } finally {
-        setLoading(false);
+      setErr(error.message);
     }
   };
 
@@ -97,9 +136,12 @@ function AuthCard({ token, setToken, onAuthed }) {
 
   return html`
     <div class="glass-card rounded-2xl p-6 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-      <div class="mb-6 flex border-b border-white/5">
-         <button onClick=${()=>setMode('login')} class="pb-3 px-2 text-sm font-medium transition-colors border-b-2 outline-none ${mode==='login' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-200'} flex-1 flex items-center justify-center gap-2"><i class="ph ph-sign-in text-lg"></i> Login</button>
-         <button onClick=${()=>setMode('register')} class="pb-3 px-2 text-sm font-medium transition-colors border-b-2 outline-none ${mode==='register' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-200'} flex-1 flex items-center justify-center gap-2"><i class="ph ph-user-plus text-lg"></i> Register</button>
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 rounded-xl bg-primary/20 text-primary flex items-center justify-center mx-auto mb-3">
+          <i class="ph ph-sign-in text-2xl"></i>
+        </div>
+        <h3 class="font-semibold text-lg text-white">Sign in to Wordly</h3>
+        <p class="text-sm text-gray-400 mt-1">Use your Google account to continue</p>
       </div>
 
       ${err && html`
@@ -109,32 +151,9 @@ function AuthCard({ token, setToken, onAuthed }) {
         </div>
       `}
 
-      <form onSubmit=${submit} class="space-y-4">
-        <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-gray-400 ml-1 uppercase tracking-wider">Email Address</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
-                    <i class="ph ph-envelope-simple text-lg"></i>
-                </div>
-                <input value=${email} onInput=${e => setEmail(e.target.value)} type="email" placeholder="student@example.com" class="w-full bg-slate-900/50 border border-slate-700/50 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-slate-900 rounded-xl px-4 py-3 pl-11 text-sm outline-none transition-all placeholder:text-slate-600 text-white" />
-            </div>
-        </div>
-        
-        <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-gray-400 ml-1 uppercase tracking-wider">Password</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
-                    <i class="ph ph-lock-key text-lg"></i>
-                </div>
-                <input value=${password} onInput=${e => setPassword(e.target.value)} type="password" placeholder="••••••••" maxLength="72" class="w-full bg-slate-900/50 border border-slate-700/50 focus:border-primary focus:ring-1 focus:ring-primary focus:bg-slate-900 rounded-xl px-4 py-3 pl-11 text-sm outline-none transition-all placeholder:text-slate-600 text-white" />
-            </div>
-        </div>
-        
-        <button disabled=${!email || !password || loading} type="submit" class="w-full bg-primary hover:bg-primaryHover disabled:opacity-50 disabled:hover:bg-primary shadow-lg shadow-primary/25 text-white font-semibold rounded-xl px-4 py-3.5 transition-all outline-none flex justify-center items-center gap-2 mt-4">
-            ${loading ? html`<i class="ph ph-spinner animate-spin text-xl"></i>` : mode === 'login' ? html`<i class="ph ph-sign-in text-xl"></i>` : html`<i class="ph ph-user-plus text-xl"></i>`} 
-            ${mode === 'login' ? 'Sign In' : 'Create Account'}
-        </button>
-      </form>
+      <div class="flex justify-center py-2">
+        <${GoogleSignIn} onCredential=${onCredential} />
+      </div>
     </div>
   `;
 }
@@ -313,7 +332,14 @@ function QuizCard({ token }) {
         </div>
       `}
 
-      ${!sessionId && html`
+      ${!sessionId && sets.length === 0 && html`
+        <div class="text-center py-10 px-4 border border-dashed border-slate-700 rounded-xl text-gray-400 relative z-10">
+          <i class="ph ph-folder-open text-4xl text-slate-500 mb-3 block"></i>
+          You have no word sets yet. Open the <span class="text-teal-300 font-semibold">Vocab Sets</span> tab to create one or import a CSV.
+        </div>
+      `}
+
+      ${!sessionId && sets.length > 0 && html`
         <div class="space-y-6 relative z-10">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div class="space-y-2 flex flex-col">
@@ -521,28 +547,33 @@ function VocabCard({ token }) {
   const [setName, setSetName] = useState('');
   const [vocab, setVocab] = useState([]);
   const [err, setErr] = useState('');
-  
+
   const [newWord, setNewWord] = useState('');
   const [newTrans, setNewTrans] = useState('');
+  const [newSetName, setNewSetName] = useState('');
+  const [importName, setImportName] = useState('');
   const [loading, setLoading] = useState(false);
+  const fileRef = React.useRef(null);
 
-  const loadSets = async () => {
+  const loadSets = async (preferred) => {
     setErr('');
     try {
       const data = await apiFetch('/api/sets', { token });
       setSets(data);
-      if (!setName && data.length) setSetName(data[0].name);
+      const names = data.map(s => s.name);
+      if (preferred && names.includes(preferred)) setSetName(preferred);
+      else if (!names.includes(setName)) setSetName(names[0] || '');
     } catch(e) {
       setErr(e.message);
     }
   };
 
   const loadVocab = async () => {
-    if (!setName) return;
+    if (!setName) { setVocab([]); return; }
     setErr('');
     setLoading(true);
     try {
-      const data = await apiFetch(`/api/sets/${setName}/vocab`, { token });
+      const data = await apiFetch(`/api/sets/${encodeURIComponent(setName)}/vocab`, { token });
       setVocab(data);
     } catch(e) {
       setErr(e.message);
@@ -554,13 +585,66 @@ function VocabCard({ token }) {
   useEffect(() => { loadSets(); }, [token]);
   useEffect(() => { loadVocab(); }, [setName]);
 
+  const createSet = async (e) => {
+    e.preventDefault();
+    const name = newSetName.trim();
+    if (!name) return;
+    setErr('');
+    setLoading(true);
+    try {
+      await apiFetch('/api/sets', { method: 'POST', token, body: { name } });
+      setNewSetName('');
+      await loadSets(name);
+    } catch(e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const importSet = async (e) => {
+    e.preventDefault();
+    const file = fileRef.current && fileRef.current.files && fileRef.current.files[0];
+    if (!file) { setErr('Choose a CSV file first.'); return; }
+    setErr('');
+    setLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (importName.trim()) fd.append('name', importName.trim());
+      const res = await apiUpload('/api/sets/import', { token, formData: fd });
+      setImportName('');
+      if (fileRef.current) fileRef.current.value = '';
+      await loadSets(res.name);
+    } catch(e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCurrentSet = async () => {
+    if (!setName) return;
+    if (!confirm(`Delete set "${setName}" and all its words?`)) return;
+    setErr('');
+    setLoading(true);
+    try {
+      await apiFetch(`/api/sets/${encodeURIComponent(setName)}`, { method: 'DELETE', token });
+      await loadSets();
+    } catch(e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addVocab = async (e) => {
     e.preventDefault();
     if (!newWord || !newTrans) return;
     setErr('');
     setLoading(true);
     try {
-      await apiFetch(`/api/sets/${setName}/vocab`, {
+      await apiFetch(`/api/sets/${encodeURIComponent(setName)}/vocab`, {
         method: 'POST',
         token,
         body: { word: newWord, translation: newTrans }
@@ -570,22 +654,24 @@ function VocabCard({ token }) {
       await loadVocab();
     } catch(e) {
       setErr(e.message);
+    } finally {
       setLoading(false);
     }
   };
-  
+
   const delVocab = async (word) => {
     if (!confirm(`Delete ${word}?`)) return;
     setErr('');
     setLoading(true);
     try {
-      await apiFetch(`/api/sets/${setName}/vocab/${word}`, {
+      await apiFetch(`/api/sets/${encodeURIComponent(setName)}/vocab/${encodeURIComponent(word)}`, {
         method: 'DELETE',
         token
       });
       await loadVocab();
     } catch(e) {
       setErr(e.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -597,43 +683,75 @@ function VocabCard({ token }) {
         <h2 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-emerald-400">Vocab Sets</h2>
       </div>
 
-      ${err && html`<div class="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-lg text-sm">${err}</div>`}
+      ${err && html`<div class="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-lg text-sm whitespace-pre-line">${err}</div>`}
 
-      <div class="mb-6 flex items-end gap-3 flex-wrap">
-        <div class="flex-1 min-w-[200px]">
-          <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Select Set</label>
-          <select value=${setName} onChange=${e => setSetName(e.target.value)} class="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-3 outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-white font-medium shadow-inner appearance-none relative">
-            ${sets.map(s => html`<option key=${s.name} value=${s.name}>${s.name}</option>`)}
-          </select>
+      <!-- Create / import sets -->
+      <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit=${createSet} class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Create New Set</label>
+          <div class="flex gap-2">
+            <input type="text" value=${newSetName} onChange=${e=>setNewSetName(e.target.value)} placeholder="Set name" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" />
+            <button type="submit" disabled=${loading || !newSetName.trim()} class="bg-teal-500 hover:bg-teal-400 text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center gap-2 shrink-0"><i class="ph ph-folder-plus text-lg"></i> Create</button>
+          </div>
+        </form>
+
+        <form onSubmit=${importSet} class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+          <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Import CSV <span class="normal-case text-slate-500">(word,translation per row)</span></label>
+          <div class="flex flex-col gap-2">
+            <input ref=${fileRef} type="file" accept=".csv,text/csv" class="text-sm text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-700 file:text-white file:cursor-pointer hover:file:bg-slate-600" />
+            <div class="flex gap-2">
+              <input type="text" value=${importName} onChange=${e=>setImportName(e.target.value)} placeholder="Set name (optional; defaults to file name)" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400 text-sm" />
+              <button type="submit" disabled=${loading} class="bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center gap-2 shrink-0"><i class="ph ph-upload-simple text-lg"></i> Import</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      ${sets.length === 0 ? html`
+        <div class="text-center py-10 px-4 border border-dashed border-slate-700 rounded-xl text-gray-400">
+          <i class="ph ph-folder-open text-4xl text-slate-500 mb-3 block"></i>
+          You don't have any sets yet. Create one above, or import a CSV to get started.
         </div>
-      </div>
-      
-      <form onSubmit=${addVocab} class="flex gap-4 items-center mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex-wrap sm:flex-nowrap">
-          <input type="text" value=${newWord} onChange=${e=>setNewWord(e.target.value)} placeholder="New Word" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" required />
-          <input type="text" value=${newTrans} onChange=${e=>setNewTrans(e.target.value)} placeholder="Translation" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" required />
-          <button type="submit" disabled=${loading || !newWord || !newTrans} class="bg-teal-500 hover:bg-teal-400 w-full sm:w-auto text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"><i class="ph ph-plus-circle text-lg"></i> Add</button>
-      </form>
+      ` : html`
+        <div class="mb-6 flex items-end gap-3 flex-wrap">
+          <div class="flex-1 min-w-[200px]">
+            <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Select Set</label>
+            <select value=${setName} onChange=${e => setSetName(e.target.value)} class="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-3 outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 text-white font-medium shadow-inner appearance-none relative">
+              ${sets.map(s => html`<option key=${s.name} value=${s.name}>${s.name} (${s.word_count})</option>`)}
+            </select>
+          </div>
+          <button onClick=${deleteCurrentSet} disabled=${loading || !setName} class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl px-4 py-3 font-semibold disabled:opacity-50 transition-colors flex items-center gap-2" title="Delete this set">
+            <i class="ph ph-trash text-lg"></i> Delete Set
+          </button>
+        </div>
 
-      <div class="max-h-96 overflow-y-auto pr-2 rounded-lg border border-slate-700/30">
-        ${vocab.length === 0 ? html`<p class="text-gray-400 text-center p-4">Empty set.</p>` : html`
-          <table class="w-full text-left text-gray-300">
-            <thead class="sticky top-0 bg-slate-800/90 backdrop-blur text-sm uppercase text-gray-400 shadow">
-              <tr><th class="p-3 font-semibold">Word</th><th class="p-3 font-semibold">Translation</th><th class="p-3 font-semibold text-right">Delete</th></tr>
-            </thead>
-            <tbody class="divide-y divide-slate-700/50">
-              ${vocab.map(v => html`
-                <tr class="hover:bg-slate-800/30 transition-colors">
-                  <td class="p-3 font-medium text-white">${v.word}</td>
-                  <td class="p-3 text-sm">${v.translation}</td>
-                  <td class="p-3 text-right">
-                      <button onClick=${()=>delVocab(v.word)} class="text-slate-500 hover:text-rose-400 transition-colors p-1" title="Delete"><i class="ph ph-trash text-lg"></i></button>
-                  </td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
-        `}
-      </div>
+        <form onSubmit=${addVocab} class="flex gap-4 items-center mb-6 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex-wrap sm:flex-nowrap">
+            <input type="text" value=${newWord} onChange=${e=>setNewWord(e.target.value)} placeholder="New Word" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" required />
+            <input type="text" value=${newTrans} onChange=${e=>setNewTrans(e.target.value)} placeholder="Translation" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" required />
+            <button type="submit" disabled=${loading || !newWord || !newTrans} class="bg-teal-500 hover:bg-teal-400 w-full sm:w-auto text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"><i class="ph ph-plus-circle text-lg"></i> Add</button>
+        </form>
+
+        <div class="max-h-96 overflow-y-auto pr-2 rounded-lg border border-slate-700/30">
+          ${vocab.length === 0 ? html`<p class="text-gray-400 text-center p-4">Empty set.</p>` : html`
+            <table class="w-full text-left text-gray-300">
+              <thead class="sticky top-0 bg-slate-800/90 backdrop-blur text-sm uppercase text-gray-400 shadow">
+                <tr><th class="p-3 font-semibold">Word</th><th class="p-3 font-semibold">Translation</th><th class="p-3 font-semibold text-right">Delete</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-700/50">
+                ${vocab.map(v => html`
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="p-3 font-medium text-white">${v.word}</td>
+                    <td class="p-3 text-sm">${v.translation}</td>
+                    <td class="p-3 text-right">
+                        <button onClick=${()=>delVocab(v.word)} class="text-slate-500 hover:text-rose-400 transition-colors p-1" title="Delete"><i class="ph ph-trash text-lg"></i></button>
+                    </td>
+                  </tr>
+                `)}
+              </tbody>
+            </table>
+          `}
+        </div>
+      `}
     </div>
   `;
 }

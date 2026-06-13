@@ -9,14 +9,9 @@ from pydantic import BaseModel, EmailStr, Field
 QuizMode = Literal["en-to-ch", "ch-to-en", "en-spelling"]
 
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=72)
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+class GoogleAuthRequest(BaseModel):
+    # The ID token ("credential") returned by Google Identity Services.
+    credential: str
 
 
 class TokenResponse(BaseModel):
@@ -27,11 +22,17 @@ class TokenResponse(BaseModel):
 class UserMeResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
+    name: str | None = None
+    picture: str | None = None
 
 
 class SetListItem(BaseModel):
     name: str
-    size_bytes: int
+    word_count: int
+
+
+class CreateSetRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
 
 
 class CreateSessionRequest(BaseModel):
