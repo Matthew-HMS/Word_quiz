@@ -687,20 +687,20 @@ function VocabCard({ token }) {
 
       <!-- Create / import sets -->
       <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <form onSubmit=${createSet} class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+        <form onSubmit=${createSet} class="min-w-0 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
           <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Create New Set</label>
           <div class="flex gap-2">
-            <input type="text" value=${newSetName} onChange=${e=>setNewSetName(e.target.value)} placeholder="Set name" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" />
+            <input type="text" value=${newSetName} onChange=${e=>setNewSetName(e.target.value)} placeholder="Set name" class="flex-1 min-w-0 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400" />
             <button type="submit" disabled=${loading || !newSetName.trim()} class="bg-teal-500 hover:bg-teal-400 text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center gap-2 shrink-0"><i class="ph ph-folder-plus text-lg"></i> Create</button>
           </div>
         </form>
 
-        <form onSubmit=${importSet} class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
+        <form onSubmit=${importSet} class="min-w-0 bg-slate-800/50 p-4 rounded-xl border border-slate-700/50">
           <label class="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Import CSV <span class="normal-case text-slate-500">(word,translation per row)</span></label>
           <div class="flex flex-col gap-2">
-            <input ref=${fileRef} type="file" accept=".csv,text/csv" class="text-sm text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-700 file:text-white file:cursor-pointer hover:file:bg-slate-600" />
+            <input ref=${fileRef} type="file" accept=".csv,text/csv" class="w-full min-w-0 text-sm text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-700 file:text-white file:cursor-pointer hover:file:bg-slate-600" />
             <div class="flex gap-2">
-              <input type="text" value=${importName} onChange=${e=>setImportName(e.target.value)} placeholder="Set name (optional; defaults to file name)" class="flex-1 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400 text-sm" />
+              <input type="text" value=${importName} onChange=${e=>setImportName(e.target.value)} placeholder="Set name (optional)" class="flex-1 min-w-0 bg-slate-900/50 border border-slate-600/50 rounded-lg px-3 py-2 text-white outline-none focus:border-teal-400 text-sm" />
               <button type="submit" disabled=${loading} class="bg-indigo-500 hover:bg-indigo-400 text-white rounded-lg px-4 py-2 font-bold shadow-lg disabled:opacity-50 transition-colors flex items-center gap-2 shrink-0"><i class="ph ph-upload-simple text-lg"></i> Import</button>
             </div>
           </div>
